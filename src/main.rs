@@ -1,5 +1,7 @@
 use std::collections::BTreeMap;
 
+mod wal;
+
 struct Db {
     memtable: BTreeMap<Vec<u8>, Option<Vec<u8>>>,
 }
