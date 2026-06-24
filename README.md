@@ -13,6 +13,6 @@ A key-value storage engine built from scratch in Rust, implementing an LSM-Tree 
 
 - [x] Phase 1: Memtable (in-memory `SET`, `GET`, `DELETE` with tombstone support)
 - [x] Phase 1: WAL (durability across restarts)
-- [ ] Phase 2: SSTable flush
+- [x] Phase 2: SSTable flush
 - [ ] Phase 3: Compaction
 - [ ] Phase 4: TCP server
