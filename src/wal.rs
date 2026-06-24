@@ -88,4 +88,10 @@ impl Wal {
 
         Ok(entries)
     }
+
+    pub fn clear(&mut self) -> Result<()> {
+        self.file.set_len(0)?;
+        self.file.seek(SeekFrom::Start(0))?;
+        Ok(())
+    }
 }
