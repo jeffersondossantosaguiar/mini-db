@@ -7,7 +7,7 @@ use crate::sstable::SSTable;
 use crate::wal::Wal;
 use std::{collections::BTreeMap, io::Result};
 
-const MEMTABLE_SIZE_LIMIT: usize = 64 * 1024; // 64KB — pequeno pra facilitar testes
+const MEMTABLE_SIZE_LIMIT: usize = 64 * 1024; // 64KB 
 
 struct Db {
     memtable: BTreeMap<Vec<u8>, Option<Vec<u8>>>,
@@ -55,8 +55,22 @@ impl Db {
         Ok(())
     }
 
-    fn get(&self, key: &[u8]) -> Option<&[u8]> {
-        self.memtable.get(key).and_then(|v| v.as_deref())
+    fn get(&self, key: &[u8]) -> Option<Vec<u8>> {
+        match self.memtable.get(key) {
+            None => {
+                for sstable_id in (0..self.next_sstable_id).rev() {
+                    let sstable_path = format!("sstable_{}.dat", sstable_id);
+                    let sstable = SSTable::new(&sstable_path);
+
+                    if let Ok(Some(value)) = sstable.read(key) {
+                        return value;
+                    }
+                }
+                None
+            }
+            Some(None) => None,
+            Some(Some(v)) => Some(v.clone()),
+        }
     }
 
     fn delete(&mut self, key: &[u8]) -> Result<()> {
@@ -94,7 +108,7 @@ fn main() -> Result<()> {
     db.set(b"chave".to_vec(), b"valor".to_vec())?;
 
     if let Some(value) = db.get(b"chave") {
-        println!("Valor para 'chave': {}", String::from_utf8_lossy(value));
+        println!("Valor para 'chave': {}", String::from_utf8_lossy(&value));
     } else {
         println!("Chave não encontrada");
     }
@@ -102,7 +116,7 @@ fn main() -> Result<()> {
     db.delete(b"chave")?;
 
     if let Some(value) = db.get(b"chave") {
-        println!("Valor para 'chave': {}", String::from_utf8_lossy(value));
+        println!("Valor para 'chave': {}", String::from_utf8_lossy(&value));
     } else {
         println!("Chave não encontrada");
     }
