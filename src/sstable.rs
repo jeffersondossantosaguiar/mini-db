@@ -1,7 +1,11 @@
 use std::collections::BTreeMap;
 use std::fs::OpenOptions;
+use std::fs::read_dir;
 use std::io::ErrorKind::UnexpectedEof;
 use std::io::{Read, Result, Seek, SeekFrom, Write};
+
+const SSTABLE_NAME_PREFIX: &str = "sstable_";
+const SSTABLE_EXTENSION: &str = ".sst";
 
 pub struct SSTable {
     path: String,
@@ -92,4 +96,31 @@ impl SSTable {
 
         Ok(None)
     }
+}
+
+pub fn sstable_path(id: u64) -> String {
+    format!("{}{}{}", SSTABLE_NAME_PREFIX, id, SSTABLE_EXTENSION)
+}
+
+pub fn next_sstable_id() -> u64 {
+    let mut id = 0;
+
+    if let Ok(files) = read_dir(".") {
+        for file in files.flatten() {
+            let file_name = file.file_name();
+            let file_name_str = file_name.to_string_lossy();
+
+            if file_name_str.starts_with(SSTABLE_NAME_PREFIX)
+                && file_name_str.ends_with(SSTABLE_EXTENSION)
+                && let Some(id_str) = file_name_str
+                    .strip_prefix(SSTABLE_NAME_PREFIX)
+                    .and_then(|s| s.strip_suffix(SSTABLE_EXTENSION))
+                && let Ok(file_id) = id_str.parse::<u64>()
+                && file_id >= id
+            {
+                id = file_id + 1;
+            };
+        }
+    };
+    id
 }

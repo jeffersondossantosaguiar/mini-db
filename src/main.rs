@@ -1,9 +1,7 @@
-mod helpers;
 mod sstable;
 mod wal;
 
-use crate::helpers::next_sstable_id;
-use crate::sstable::SSTable;
+use crate::sstable::{SSTable, next_sstable_id, sstable_path};
 use crate::wal::Wal;
 use std::{collections::BTreeMap, io::Result};
 
@@ -59,7 +57,7 @@ impl Db {
         match self.memtable.get(key) {
             None => {
                 for sstable_id in (0..self.next_sstable_id).rev() {
-                    let sstable_path = format!("sstable_{}.dat", sstable_id);
+                    let sstable_path = sstable_path(sstable_id);
                     let sstable = SSTable::new(&sstable_path);
 
                     if let Ok(Some(value)) = sstable.read(key) {
@@ -88,7 +86,7 @@ impl Db {
         let sstable_id = self.next_sstable_id;
         self.next_sstable_id += 1;
 
-        let sstable_path = format!("sstable_{}.dat", sstable_id);
+        let sstable_path = sstable_path(sstable_id);
         let sstable = SSTable::new(&sstable_path);
 
         sstable.write(&self.memtable)?;
