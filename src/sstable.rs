@@ -124,3 +124,27 @@ pub fn next_sstable_id() -> u64 {
     };
     id
 }
+
+pub fn existing_sstable_id() -> Vec<u64> {
+    let mut ids: Vec<u64> = Vec::new();
+
+    if let Ok(files) = read_dir(".") {
+        for file in files.flatten() {
+            let file_name = file.file_name();
+            let file_name_str = file_name.to_string_lossy();
+
+            if file_name_str.starts_with(SSTABLE_NAME_PREFIX)
+                && file_name_str.ends_with(SSTABLE_EXTENSION)
+                && let Some(id_str) = file_name_str
+                    .strip_prefix(SSTABLE_NAME_PREFIX)
+                    .and_then(|s| s.strip_suffix(SSTABLE_EXTENSION))
+                && let Ok(file_id) = id_str.parse::<u64>()
+            {
+                ids.push(file_id);
+            };
+        }
+    }
+
+    ids.sort();
+    ids
+}

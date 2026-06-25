@@ -1,11 +1,15 @@
+mod compaction;
 mod sstable;
 mod wal;
 
-use crate::sstable::{SSTable, next_sstable_id, sstable_path};
+use crate::compaction::compact;
+use crate::sstable::{SSTable, existing_sstable_id, next_sstable_id, sstable_path};
 use crate::wal::Wal;
+use std::thread;
+use std::time::Duration;
 use std::{collections::BTreeMap, io::Result};
 
-const MEMTABLE_SIZE_LIMIT: usize = 64 * 1024; // 64KB 
+const MEMTABLE_SIZE_LIMIT: usize = 10; // 10B to tests 
 
 struct Db {
     memtable: BTreeMap<Vec<u8>, Option<Vec<u8>>>,
@@ -96,6 +100,14 @@ impl Db {
 
         self.wal.clear()?;
 
+        let nex_sstable_id = next_sstable_id();
+        if nex_sstable_id.is_multiple_of(4) {
+            let sstable_ids = existing_sstable_id();
+            compact(&sstable_ids, nex_sstable_id)?;
+
+            self.next_sstable_id += 1;
+        }
+
         Ok(())
     }
 }
@@ -104,6 +116,19 @@ fn main() -> Result<()> {
     let mut db = Db::new()?;
 
     db.set(b"chave".to_vec(), b"valor".to_vec())?;
+
+    thread::sleep(Duration::from_secs(2));
+
+    db.set(b"chave2".to_vec(), b"valor".to_vec())?;
+
+    thread::sleep(Duration::from_secs(2));
+    db.set(b"chave3".to_vec(), b"valor".to_vec())?;
+
+    thread::sleep(Duration::from_secs(2));
+    db.set(b"chav4".to_vec(), b"valor".to_vec())?;
+    thread::sleep(Duration::from_secs(2));
+    db.set(b"chav5".to_vec(), b"valor".to_vec())?;
+    thread::sleep(Duration::from_secs(2));
 
     if let Some(value) = db.get(b"chave") {
         println!("Valor para 'chave': {}", String::from_utf8_lossy(&value));
