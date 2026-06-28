@@ -1,4 +1,5 @@
 mod compaction;
+mod protocol;
 mod sstable;
 mod wal;
 
